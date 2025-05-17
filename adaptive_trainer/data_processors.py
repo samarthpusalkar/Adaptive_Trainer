@@ -77,13 +77,21 @@ class DataProcessor:
         Load, format, and tokenize a dataset.
         
         Args:
-            dataset_name: HuggingFace dataset name
+            dataset_name: HuggingFace dataset name, if only k number of items from the dataset are to be used for training you can append :|:k at the end of dataset_name
             learning_style: Training style ('both', 'ideas', 'attention', etc.)
             system_prompts: Dictionary of system prompts by learning style
             
         Returns:
             Tuple of (train_dataset, val_dataset)
         """
+        if ':|:' in dataset_name:
+            try:
+                N = dataset_name.split(':|:')[-1]
+                N = int(N)
+                dataset_name = ':|:'.join(dataset_name.split(':|:')[:-1])
+            except:
+                N = 10000000
+                pass 
         if system_prompts is None:
             # Default system prompt
             system_prompt = "Please follow the user instructions faithfully."
@@ -107,11 +115,11 @@ class DataProcessor:
         # If validation split is the same as train split, create a separate validation set
         if val_split == train_split:
             split_dataset = dataset[train_split].train_test_split(test_size=0.05, seed=42)
-            train_dataset = split_dataset["train"].shuffle(seed=42).select(range(min(1500, len(split_dataset["train"]))))
-            val_dataset = split_dataset["test"].shuffle(seed=42).select(range(min(1000, len(split_dataset["test"]))))
+            train_dataset = split_dataset["train"].shuffle(seed=42).select(range(min(N, len(split_dataset["train"]))))
+            val_dataset = split_dataset["test"].shuffle(seed=42).select(range(min(round(N*2/3), len(split_dataset["test"]))))
         else:
-            train_dataset = dataset[train_split].shuffle(seed=42).select(range(min(1500, len(dataset[train_split])))) 
-            val_dataset = dataset[val_split].shuffle(seed=42).select(range(min(1000, len(dataset[val_split]))))
+            train_dataset = dataset[train_split].shuffle(seed=42).select(range(min(N, len(dataset[train_split])))) 
+            val_dataset = dataset[val_split].shuffle(seed=42).select(range(min(round(N*2/3), len(dataset[val_split]))))
             
         # Format the prompts
         train_dataset = train_dataset.map(
