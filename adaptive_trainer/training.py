@@ -89,7 +89,7 @@ def train_adaptively(
 
     # Set padding side
     tokenizer.padding_side = training_config.get("padding_side", "left")
-    if tokenizer.padding_size != "left":
+    if tokenizer.padding_side != "left":
         print("Warning padding side is not set to left, proceed with caution as this may not be the best practice")
     
     # Get output demarkation tokens for identifying model response sections
