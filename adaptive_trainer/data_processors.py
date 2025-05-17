@@ -94,7 +94,10 @@ class DataProcessor:
                 dataset_name = ':|:'.join(dataset_name.split(':|:')[:-1])
             except:
                 N = 10000000
-                pass 
+                pass
+        else:
+            N = 10000000
+            
         if system_prompts is None:
             # Default system prompt
             system_prompt = "Please follow the user instructions faithfully."
