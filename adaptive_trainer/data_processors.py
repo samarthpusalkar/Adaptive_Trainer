@@ -57,6 +57,9 @@ class DataProcessor:
         elif 'question' in sample and 'answer' in sample and 'question_with_context' in sample:
             user0 = sample['question_with_context'] if self.context_mode else sample['question']
             assistant = sample['answer']
+        elif 'question' in sample and 'answer' in sample:
+            user0 = sample['question']
+            assistant = sample['answer']
         elif 'prompt' in sample and 'response' in sample:
             user0 = sample['prompt']
             assistant = sample['response'].replace('<|thinking|>', '<think>').replace('</|thinking|>', '</think>').replace('</|actual_response|>', '').replace('<|actual_response|>', '')
