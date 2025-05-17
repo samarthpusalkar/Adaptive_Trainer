@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 VERSION = "0.1.0"
 
 INSTALL_REQUIRES = [
-    "torch>=2.6.0+cu124",
+    "torch>=2.6.0",
     "datasets>=3.6.0",
     "transformers>=4.51.3",
     "huggingface_hub>=0.31.1",
