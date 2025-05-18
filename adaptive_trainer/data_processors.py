@@ -215,9 +215,9 @@ class DataProcessor:
             if style == 'dataset_specific_system_prompts':
                 continue
 
-            dataset_kwargs = datasets_kwargs.get(dataset_name, None)
-            dataset_specific_prompt = dataset_specific_system_prompts.get(dataset_name, '')
             for dataset_name in datasets:
+                dataset_kwargs = datasets_kwargs.get(dataset_name, None)
+                dataset_specific_prompt = dataset_specific_system_prompts.get(dataset_name, '')
                 train_dataset, eval_dataset = self.prepare_dataset(
                     dataset_name,
                     dataset_kwargs,
