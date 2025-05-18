@@ -221,6 +221,10 @@ class DataProcessor:
             for dataset_name in datasets:
                 dataset_kwargs = datasets_kwargs.get(dataset_name, None)
                 dataset_specific_prompt = dataset_specific_system_prompts.get(dataset_name, '')
+                if (dataset_kwargs is None) and (":|:" in dataset_name):
+                    dataset_kwargs = datasets_kwargs.get(":|:".join(dataset_name.split(":|:")[:-1]), None)
+                if (dataset_specific_prompt=='') and (":|:" in dataset_name):
+                    dataset_specific_prompt = dataset_specific_system_prompts.get(":|:".join(dataset_name.split(":|:")[:-1]), '')
                 train_dataset, eval_dataset = self.prepare_dataset(
                     dataset_name,
                     dataset_kwargs,
