@@ -23,6 +23,8 @@ def train_adaptively(
     output_dir,
     huggingface_repo=None,
     system_prompts=None,
+    datasets_kwargs=None,
+    dataset_specific_system_prompts=None,
     training_config=None,
     adaptive_loss_config=None,
     upload_config=None
@@ -104,7 +106,13 @@ def train_adaptively(
     # Prepare datasets
     if system_prompts:
         datasets_config["system_prompts"] = system_prompts
-    
+
+    if datasets_kwargs:
+        datasets_config["datasets_kwargs"] = datasets_kwargs
+
+    if dataset_specific_system_prompts:
+        datasets_config["dataset_specific_system_prompts"] = dataset_specific_system_prompts
+
     train_dataset, eval_dataset = data_processor.combine_datasets(datasets_config)
     
     # Load model

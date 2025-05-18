@@ -75,7 +75,7 @@ class DataProcessor:
         
         return f"{self.config.begin_text_token}{self.config.system_header}{system_prompt}{self.config.end_turn_token}{self.config.user_header}{user0}{self.config.end_turn_token}{self.config.assistant_header}{assistant}{self.config.end_turn_token}{self.config.end_text_token}"
     
-    def prepare_dataset(self, dataset_name, learning_style='both', system_prompts=None):
+    def prepare_dataset(self, dataset_name, dataset_kwargs, dataset_specific_prompt, learning_style='both', system_prompts=None):
         """
         Load, format, and tokenize a dataset.
         
@@ -100,14 +100,13 @@ class DataProcessor:
             
         if system_prompts is None:
             # Default system prompt
-            system_prompt = "Please follow the user instructions faithfully."
+            system_prompt = "" +  dataset_specific_prompt
         else:
-            system_prompt = system_prompts.get(learning_style, system_prompts.get('both', 
-                            "Please follow the user instructions faithfully."))
-        
+            system_prompt = system_prompts.get(learning_style, '') + dataset_specific_prompt
+
         logger.info(f"Loading dataset: {dataset_name}")
-        dataset = load_dataset(dataset_name)
-        
+        dataset = load_dataset(dataset_name, **dataset_kwargs)
+
         # Print available splits for debugging
         available_splits = list(dataset.keys())
         logger.info(f"Available splits in the dataset: {available_splits}")
@@ -204,15 +203,25 @@ class DataProcessor:
         training_datasets = []
         eval_datasets = []
         system_prompts = dataset_dict.get('system_prompts', {})
-        
+        datasets_kwargs = dataset_dict.get('datasets_kwargs', {})
+        dataset_specific_system_prompts = dataset_dict.get('dataset_specific_system_prompts', {})
+
         # Process each dataset category
         for style, datasets in dataset_dict.items():
             if style == 'system_prompts':
                 continue
-                
+            if style == 'dataset_branchs':
+                continue
+            if style == 'dataset_specific_system_prompts':
+                continue
+
+            dataset_kwargs = datasets_kwargs.get(dataset_name, None)
+            dataset_specific_prompt = dataset_specific_system_prompts.get(dataset_name, '')
             for dataset_name in datasets:
                 train_dataset, eval_dataset = self.prepare_dataset(
-                    dataset_name, 
+                    dataset_name,
+                    dataset_kwargs,
+                    dataset_specific_prompt,
                     learning_style=style,
                     system_prompts=system_prompts
                 )

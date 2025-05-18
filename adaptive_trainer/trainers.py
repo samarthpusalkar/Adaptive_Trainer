@@ -120,7 +120,10 @@ class AdaptiveTrainer(Trainer):
         # We use argmax. Since True casts to 1 and False to 0, argmax finds the
         # index of the last True. If a row has no True values, argmax returns 0.
         # Shape: (B,)
-        last_match_indices = torch.argmax(row_matches.int()[:,::-1], dim=1)
+        row_matches_reversed = torch.flip(row_matches, dims=[1])
+        # 2. Reverse each row
+        last_match_indices_from_right = torch.argmax(row_matches_reversed.int(), dim=1)
+        last_match_indices = row_matches_reversed.shape[1] - last_match_indices_from_right - 1
 
         # Distinguish rows with no matches at all from rows where the match starts at index 0.
         # Check if *any* match occurred in each row.
@@ -157,7 +160,7 @@ class AdaptiveTrainer(Trainer):
         labels = inputs.get("labels")
         
         # Create tensor for gathering statistics by position
-        positions = torch.arange(labels.size(1), device=labels.device).expand_as(labels)
+        positions = None#torch.arange(labels.size(1), device=labels.device).expand_as(labels)
         
         # Apply selective loss
         loss, loss_stats = self._compute_adaptive_loss(
@@ -314,7 +317,10 @@ class AdaptiveTrainer(Trainer):
                 flat_labels_coherence_temp[~(flat_learn_style_mask_attention)] = -100
                 attention_learning_loss = loss_fct(flat_logits, flat_labels_coherence_temp) + self_confidence_loss/4
 
-        loss = attention_learning_loss + ideas_learning_loss
+        # Recalculating proper training tokens
+        stats['training_mask'] = flat_learn_style_mask_attention.sum().item() + flat_learn_style_mask_ideas.sum().item()
+        alpha_attention_bias = torch.tensor(1, requires_grad=True)
+        loss = (attention_learning_loss*alpha_attention_bias + ideas_learning_loss*(2-alpha_attention_bias))**2
 
         return loss, stats
 
@@ -355,3 +361,14 @@ class AdaptiveTrainer(Trainer):
             for key in ['total_tokens', 'already_correct', 'in_top_k', 
                 'outside_top_k', 'training_mask']:
                 self.stats[key] = 0
+            
+            # Reseting stats for better results tracking.
+            self.stats = {
+                "total_tokens": 0,
+                "already_correct": 0,
+                "in_top_k": 0,
+                "outside_top_k": 0,
+                "training_mask": 0,
+                "tokens_by_position": defaultdict(lambda: defaultdict(int)),
+                "step_count": 0
+            }
