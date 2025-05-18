@@ -105,7 +105,10 @@ class DataProcessor:
             system_prompt = system_prompts.get(learning_style, '') + dataset_specific_prompt
 
         logger.info(f"Loading dataset: {dataset_name}")
-        dataset = load_dataset(dataset_name, **dataset_kwargs)
+        if dataset_kwargs is not None and type(dataset_kwargs)==dict:
+            dataset = load_dataset(dataset_name, **dataset_kwargs)
+        else:
+            dataset = load_dataset(dataset_name)
 
         # Print available splits for debugging
         available_splits = list(dataset.keys())
