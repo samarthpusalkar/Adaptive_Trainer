@@ -35,12 +35,11 @@ dependencies = [
     "transformers>=4.51.3",
     "huggingface_hub>=0.31.1",
     "wandb>=0.19.11",
-    "accelerate>=1.6.0",
-    "bitsandbytes>=0.45.5"
+    "accelerate>=1.6.0"
 ]
 
 [project.optional-dependencies]
-flash_attn = ["flash-attn>=2.7.4"]
+flash_attn = ["flash-attn>=2.7.4", "bitsandbytes>=0.45.5"]
 
 [project.urls]
 Homepage = "https://github.com/samarthpusalkar/Adaptive_Trainer"
