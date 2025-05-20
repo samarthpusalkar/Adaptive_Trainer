@@ -100,8 +100,7 @@ def train_adaptively(
     
     # Setup data processor
     max_length = training_config.get("max_length_token", 4096)
-    context_mode = training_config.get("context_mode", True)
-    data_processor = DataProcessor(tokenizer, tokenizer_config, max_length, context_mode)
+    data_processor = DataProcessor(tokenizer, tokenizer_config, max_length)
     
     # Prepare datasets
     if system_prompts:
