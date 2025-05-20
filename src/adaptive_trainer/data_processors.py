@@ -103,6 +103,8 @@ class DataProcessor:
             system_prompt = system_prompts.get(learning_style, '') + dataset_specific_prompt
 
         context_mode = dataset_kwargs.pop("context_mode", False)
+        if context_mode in ["attention", "ideas"]:
+            context_mode = (learning_style == context_mode)
         logger.info(f"Loading dataset: {dataset_name}")
         if dataset_kwargs is not None and type(dataset_kwargs)==dict:
             dataset = load_dataset(dataset_name, **dataset_kwargs)
