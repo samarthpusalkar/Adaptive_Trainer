@@ -228,7 +228,7 @@ class DataProcessor:
                     dataset_specific_prompt = dataset_specific_system_prompts.get(":|:".join(dataset_name.split(":|:")[:-1]), '')
                 train_dataset, eval_dataset = self.prepare_dataset(
                     dataset_name,
-                    dataset_kwargs.copy(),
+                    dataset_kwargs.copy() if dataset_kwargs is not None else None,
                     dataset_specific_prompt,
                     learning_style=style,
                     system_prompts=system_prompts
