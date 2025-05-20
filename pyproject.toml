@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64", "wheel"]
+requires = ["setuptools >= 77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,7 +7,7 @@ name = "adaptive-trainer"
 version = "0.1.0"
 description = "A Hugging Face Trainer extension for adaptive loss and ideas learning."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 authors = [
     { name = "Samarth Pusalkar", email = "samarthpusalkar@gmail.com" }
 ]
@@ -31,7 +31,7 @@ flash_attn = ["flash-attn>=2.7.4"]
 
 [project.urls]
 Homepage = "https://github.com/samarthpusalkar/Adaptive_Trainer"
-Bug Tracker = "https://github.com/samarthpusalkar/Adaptive_Trainer/issues"
+Issues = "https://github.com/samarthpusalkar/Adaptive_Trainer/issues"
 
 [tool.setuptools.packages.find]
 exclude = ["tests*", "examples*"]
