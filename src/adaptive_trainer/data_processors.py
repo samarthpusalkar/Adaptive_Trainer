@@ -9,7 +9,7 @@ class DataProcessor:
     Handles dataset preparation, tokenization, and processing for training.
     """
     
-    def __init__(self, tokenizer, config, max_length=4096, context_mode=True):
+    def __init__(self, tokenizer, config, max_length=4096):
         """
         Initialize the data processor.
         
@@ -17,14 +17,12 @@ class DataProcessor:
             tokenizer: HuggingFace tokenizer
             config: TokenizerConfig instance with model-specific token settings
             max_length: Maximum sequence length
-            context_mode: Whether to use context mode for certain datasets
         """
         self.tokenizer = tokenizer
         self.config = config
         self.max_length = max_length
-        self.context_mode = context_mode
-        
-    def prepare_text_for_training(self, sample, system_prompt):
+
+    def prepare_text_for_training(self, sample, system_prompt, context_mode=False):
         """
         Format a sample for training based on its structure.
         
@@ -55,7 +53,7 @@ class DataProcessor:
             user0 = sample['problem']
             assistant = sample['solution']
         elif 'question' in sample and 'answer' in sample and 'question_with_context' in sample:
-            user0 = sample['question_with_context'] if self.context_mode else sample['question']
+            user0 = sample['question_with_context'] if context_mode else sample['question']
             assistant = sample['answer']
         elif 'question' in sample and 'answer' in sample:
             user0 = sample['question']
@@ -74,7 +72,7 @@ class DataProcessor:
                 assistant = "Unable to process this example"
         
         return f"{self.config.begin_text_token}{self.config.system_header}{system_prompt}{self.config.end_turn_token}{self.config.user_header}{user0}{self.config.end_turn_token}{self.config.assistant_header}{assistant}{self.config.end_turn_token}{self.config.end_text_token}"
-    
+
     def prepare_dataset(self, dataset_name, dataset_kwargs, dataset_specific_prompt, learning_style='both', system_prompts=None):
         """
         Load, format, and tokenize a dataset.
@@ -104,6 +102,7 @@ class DataProcessor:
         else:
             system_prompt = system_prompts.get(learning_style, '') + dataset_specific_prompt
 
+        context_mode = dataset_kwargs.pop("context_mode", False)
         logger.info(f"Loading dataset: {dataset_name}")
         if dataset_kwargs is not None and type(dataset_kwargs)==dict:
             dataset = load_dataset(dataset_name, **dataset_kwargs)
@@ -131,18 +130,18 @@ class DataProcessor:
             
         # Format the prompts
         train_dataset = train_dataset.map(
-            lambda sample: {"formatted_text": self.prepare_text_for_training(sample, system_prompt)},
+            lambda sample: {"formatted_text": self.prepare_text_for_training(sample, system_prompt, context_mode)},
             remove_columns=dataset[train_split].column_names
         )
-        
+
         val_dataset = val_dataset.map(
-            lambda sample: {"formatted_text": self.prepare_text_for_training(sample, system_prompt)},
+            lambda sample: {"formatted_text": self.prepare_text_for_training(sample, system_prompt, context_mode)},
             remove_columns=dataset[val_split].column_names
         )
-        
+
         # Tokenize the datasets
         logger.info("Tokenizing dataset...")
-        
+
         def tokenize_function(examples):
             return self.tokenizer(
                 examples["formatted_text"],
@@ -156,7 +155,7 @@ class DataProcessor:
             batched=True,
             remove_columns=["formatted_text"]
         )
-        
+
         tokenized_val = val_dataset.map(
             tokenize_function,
             batched=True,
@@ -180,7 +179,7 @@ class DataProcessor:
         tokenized_val.set_format("torch", columns=["input_ids", "attention_mask", "learning_style"])
 
         return tokenized_train, tokenized_val
-    
+
     def combine_datasets(self, dataset_dict):
         """
         Combine multiple datasets with their corresponding learning styles.
@@ -227,7 +226,7 @@ class DataProcessor:
                     dataset_specific_prompt = dataset_specific_system_prompts.get(":|:".join(dataset_name.split(":|:")[:-1]), '')
                 train_dataset, eval_dataset = self.prepare_dataset(
                     dataset_name,
-                    dataset_kwargs,
+                    dataset_kwargs.copy(),
                     dataset_specific_prompt,
                     learning_style=style,
                     system_prompts=system_prompts
