@@ -321,7 +321,7 @@ class AdaptiveTrainer(Trainer):
         # Recalculating proper training tokens
         stats['training_mask'] = (flat_learn_style_mask_attention & flat_valid_mask).sum().item() + (flat_learn_style_mask_ideas & flat_valid_mask).sum().item() - (flat_learn_style_mask_both  & flat_valid_mask).sum().item()
         alpha_attention_bias = torch.tensor(1.0, requires_grad=True)
-        loss = (attention_learning_loss*alpha_attention_bias + ideas_learning_loss*(2-alpha_attention_bias))
+        loss = (attention_learning_loss*alpha_attention_bias + ideas_learning_loss*(2-alpha_attention_bias))**2
 
         return loss, stats
 
