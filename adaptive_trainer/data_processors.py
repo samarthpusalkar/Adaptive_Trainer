@@ -49,6 +49,9 @@ class DataProcessor:
         elif 'query' in sample:
             user0 = sample['query']
             assistant = sample['response']
+        elif 'prompt' in sample and 'target_price_continuation' in sample:
+            user0 = sample['prompt']
+            assistant = sample['target_price_continuation']
         elif 'problem' in sample and 'solution' in sample:
             user0 = sample['problem']
             assistant = sample['solution']
