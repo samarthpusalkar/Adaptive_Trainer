@@ -161,15 +161,17 @@ def train_adaptively(
         save_steps=training_config.get("save_steps", 300),
         fp16=training_config.get("fp16", True),
         report_to="wandb" if training_config.get("use_wandb", True) else "none",
-        local_rank=-1,
+        local_rank=training_config.get("local_rank", -1),
         run_name=run_name,
         save_total_limit=training_config.get("save_total_limit", 5),
         label_names=['input_ids', 'attention_mask', 'labels', 'learning_style'],
-        gradient_checkpointing=True,
+        gradient_checkpointing=training_config.get("gradient_checkpointing", True),
         optim=training_config.get("optimizer", "paged_adamw_8bit"),
-        lr_scheduler_type=training_config.get("lr_scheduler_type", "cosine")
+        lr_scheduler_type=training_config.get("lr_scheduler_type", "cosine"),
+        eval_on_start=training_config.get("eval_on_start", False),
+        use_liger_kernel=training_config.get("use_liger_kernel", False)
     )
-    
+
     # Initialize wandb if requested
     if training_config.get("use_wandb", True):
         wandb_project = training_config.get("wandb_project", "selective-loss-training")
