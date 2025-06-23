@@ -22,7 +22,7 @@ class DataProcessor:
         self.config = config
         self.max_length = max_length
 
-    def prepare_text_for_training(self, sample, system_prompt, context_mode=False):
+    def prepare_text_for_training(self, sample, system_prompt, context_mode=False, dataset_preprocessing_function=None):
         """
         Format a sample for training based on its structure.
         
@@ -33,7 +33,9 @@ class DataProcessor:
         Returns:
             Formatted text string ready for tokenization
         """
-        if 'conversations' in sample:
+        if dataset_preprocessing_function is not None:
+            user0, assistant = dataset_preprocessing_function(sample, context_mode=False)
+        elif 'conversations' in sample:
             conversations = sample['conversations']
             user0 = ''
             assistant = ''
@@ -71,12 +73,11 @@ class DataProcessor:
                 user0 = sample['input']
                 assistant = sample['output']
             else:
-                user0 = str(sample)
-                assistant = "Unable to process this example"
-        
+                raise 'Unable to autoprocess dataset please pass the data_processing_function in datasets_config.'
+
         return f"{self.config.begin_text_token}{self.config.system_header}{system_prompt}{self.config.end_turn_token}{self.config.user_header}{user0}{self.config.end_turn_token}{self.config.assistant_header}{assistant}{self.config.end_turn_token}{self.config.end_text_token}"
 
-    def prepare_dataset(self, dataset_name, dataset_kwargs, dataset_specific_prompt, learning_style='both', system_prompts=None):
+    def prepare_dataset(self, dataset_name, dataset_kwargs, dataset_specific_prompt, learning_style='both', dataset_preprocessing_function=None, system_prompts=None):
         """
         Load, format, and tokenize a dataset.
         
@@ -133,14 +134,15 @@ class DataProcessor:
             train_dataset = dataset[train_split].shuffle(seed=42).select(range(min(N, len(dataset[train_split])))) 
             val_dataset = dataset[val_split].shuffle(seed=42).select(range(min(round(N*2/3), len(dataset[val_split]))))
             
+        
         # Format the prompts
         train_dataset = train_dataset.map(
-            lambda sample: {"formatted_text": self.prepare_text_for_training(sample, system_prompt, context_mode)},
+            lambda sample: {"formatted_text": self.prepare_text_for_training(sample, system_prompt, context_mode, dataset_preprocessing_function)},
             remove_columns=dataset[train_split].column_names
         )
 
         val_dataset = val_dataset.map(
-            lambda sample: {"formatted_text": self.prepare_text_for_training(sample, system_prompt, context_mode)},
+            lambda sample: {"formatted_text": self.prepare_text_for_training(sample, system_prompt, context_mode, dataset_preprocessing_function)},
             remove_columns=dataset[val_split].column_names
         )
 
@@ -223,17 +225,20 @@ class DataProcessor:
                 continue
 
             for dataset_name in datasets:
+                dataset_preprocessing_function = dataset_dict.get(f'data_processing_function_{dataset_name}',dataset_dict.get(f'data_processing_function_{style}', dataset_dict.get('data_processing_function', None)))
                 dataset_kwargs = datasets_kwargs.get(dataset_name, None)
                 dataset_specific_prompt = dataset_specific_system_prompts.get(dataset_name, '')
                 if (dataset_kwargs is None) and (":|:" in dataset_name):
                     dataset_kwargs = datasets_kwargs.get(":|:".join(dataset_name.split(":|:")[:-1]), None)
                 if (dataset_specific_prompt=='') and (":|:" in dataset_name):
                     dataset_specific_prompt = dataset_specific_system_prompts.get(":|:".join(dataset_name.split(":|:")[:-1]), '')
+                    dataset_preprocessing_function = dataset_dict.get(f'data_processing_function_{dataset_name}',dataset_dict.get(f'data_processing_function_{style}', dataset_dict.get('data_processing_function', None))) 
                 train_dataset, eval_dataset = self.prepare_dataset(
                     dataset_name,
                     dataset_kwargs.copy() if dataset_kwargs is not None else None,
                     dataset_specific_prompt,
                     learning_style=style,
+                    dataset_preprocessing_function=dataset_preprocessing_function,
                     system_prompts=system_prompts
                 )
                 training_datasets.append(train_dataset)

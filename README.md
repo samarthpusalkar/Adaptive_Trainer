@@ -43,17 +43,27 @@ system_prompts = {
     'attention': "Your role as an assistant is ..."
 }
 
+data_processing_function = lambda sample, context_mode: (sample['user'], sample['assistant'])
+
 # Configure datasets
 datasets_config = {
     'ideas': ["user/my-ideas-dataset:|:K"],
     'attention': ["user/my-attention-dataset"],
     'both': [],
-    'misc': []
+    'misc': [],
+    'data_processing_function':data_processing_function,
+    # 'data_processing_function_attention':None,
+    # 'data_processing_function_ideas':None
+    # 'data_processing_function_dataset_name':None
 }
 # The above will trim the `user/my-ideas-dataset` till top K values and similar thing can be done for attention datasets too just add :|:K at the end of dataset name and it will only use top K rows of the dataset..
+# Dataset preprocessing function which is expected to convert dataset sample row to user and assistant response strings.. is taken in the following fallback order:
+# data_processing_function_dataset_name -> data_processing_function_{ideas/attention} -> data_processing_function
+# **IMPORTANT** : passing data_processing_function_dataset_name with value None will not use fallback functions but rather used internal hard coded preprocessing function for different dataset patterns case to case.
+# The hardcoded preprocessing might fail and raise error, therefore please pass the appropriate data_processing_function
 
 dataset_kwargs = {
-    'user/my-ideas-dataset:|:K': {'data_dir'=None},
+    'user/my-ideas-dataset:|:K': {'data_dir'=None, 'context_mode':'<parameter_value_for_dataset_preprocessing_function>'},
     'user/my-ideas-dataset': {}, # Both keys are valid and should work
     'user/my-attention-dataset': {}
 }
