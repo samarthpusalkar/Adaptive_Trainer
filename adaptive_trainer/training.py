@@ -68,12 +68,14 @@ def train_adaptively(
     # Setup run name
     run_name = training_config.get("run_name", f"adaptive_select_loss_{model_name.split('/')[-1]}")
     
-    # Load tokenizer configuration based on model
-    tokenizer_config = TokenizerConfig.from_model_name(model_name)
     
     # Load tokenizer
     tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
-    
+
+    # Load tokenizer configuration based on model
+    tokenizer_config, chat_template = TokenizerConfig.from_model_name(model_name, tokenizer)
+    tokenizer.chat_template = chat_template
+
     # Setup padding token
     if tokenizer.pad_token is None:
         if tokenizer.unk_token is None:
