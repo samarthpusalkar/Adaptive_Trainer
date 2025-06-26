@@ -223,7 +223,7 @@ class DataProcessor:
                 continue
             if style == 'dataset_specific_system_prompts':
                 continue
-            if style == 'data_processing_function':
+            if style.startswith('data_processing_function'):
                 continue
 
             for dataset_name in datasets:
