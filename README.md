@@ -137,4 +137,4 @@ print(f"Training complete. Model saved to {model_path}")
 Open issues as of now
 
 ## License
-This project is licensed under <License yet to be announced>
+This project is licensed under Apache License Version 2.0
