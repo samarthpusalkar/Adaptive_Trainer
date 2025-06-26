@@ -223,6 +223,8 @@ class DataProcessor:
                 continue
             if style == 'dataset_specific_system_prompts':
                 continue
+            if style == 'data_processing_function':
+                continue
 
             for dataset_name in datasets:
                 dataset_preprocessing_function = dataset_dict.get(f'data_processing_function_{dataset_name}',dataset_dict.get(f'data_processing_function_{style}', dataset_dict.get('data_processing_function', None)))
