@@ -44,6 +44,8 @@ system_prompts = {
 }
 
 data_processing_function = lambda sample, context_mode: (sample['user'], sample['assistant'])
+# Yes, for now you can't train more than 1 assistant response on one sample, if you need a histroy of conversation to train the next model response
+# a trick to do is respond first element `sample['user']` with the assistant response included, you will need to however add the header start and close tokens for separating user and assistant texts mannually.
 
 # Configure datasets
 datasets_config = {

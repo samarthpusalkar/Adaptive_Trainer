@@ -56,7 +56,9 @@ class TokenizerConfig:
         config = cls()
         model_name_lower = model_name.lower()
         
-        if "llama" in model_name_lower:
+        if tokenizer.chat_template is not None:
+            pass
+        elif "llama" in model_name_lower:
             return config.load_llama_config()
         elif "phi" in model_name_lower:
             return config.load_phi_config()
