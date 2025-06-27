@@ -36,7 +36,6 @@ dependencies = [
     "wandb>=0.19.11",
     "accelerate>=1.6.0"
 ]
-dynamic = ["version"]
 
 [project.optional-dependencies]
 flash_attn = ["flash-attn>=2.7.4", "bitsandbytes>=0.45.5"]
