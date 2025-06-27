@@ -1,8 +1,8 @@
-torch>=2.6.0+cu124
+torch>=2.6.0
 datasets>=3.6.0
 transformers>=4.51.3
 huggingface_hub>=0.31.1
 wandb>=0.19.11
 accelerate>=1.6.0
 bitsandbytes>=0.45.5
-https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.4.post1/flash_attn-2.7.4.post1+cu12torch2.6cxx11abiFALSE-cp310-cp310-linux_x86_64.whl#sha256=ffe17686fa1a0f288de9eae7c32af209d32a27b037ef28614f042b377af5b15a
+flash_attn
