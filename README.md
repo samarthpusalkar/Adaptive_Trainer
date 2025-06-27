@@ -86,7 +86,7 @@ training_config = {
     'run_name': 'my_adaptive_run',
     'wandb_project': 'my-adaptive-experiments',
     'wandb_entity': None
-    'max_length_token': 4096,
+    'max_length_token': 4096, # datasets will be filtered with samples (user+assistant text) less than this value
     'padding_side': 'left',
     'batch_size': 4,
     'learning_rate': 2e-5,
@@ -122,6 +122,7 @@ model_path = train_adaptively(
     model_name="model_to_train",
     datasets_config=datasets_config,
     datasets_kwargs =datasets_kwargs,
+    dataset_specific_system_prompts=dataset_specific_system_prompts,
     output_dir="./my_finetuned_model_adaptive",
     huggingface_repo="your_username/my_finetuned_model_adaptive", # Optional
     system_prompts=system_prompts,
