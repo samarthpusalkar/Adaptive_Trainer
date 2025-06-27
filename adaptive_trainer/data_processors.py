@@ -34,7 +34,7 @@ class DataProcessor:
             Formatted text string ready for tokenization
         """
         if dataset_preprocessing_function is not None:
-            user0, assistant = dataset_preprocessing_function(sample, context_mode=False)
+            user0, assistant = dataset_preprocessing_function(sample, context_mode=context_mode)
         elif 'conversations' in sample:
             conversations = sample['conversations']
             user0 = ''

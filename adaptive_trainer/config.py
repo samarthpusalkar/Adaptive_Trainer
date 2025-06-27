@@ -56,18 +56,18 @@ class TokenizerConfig:
         config = cls()
         model_name_lower = model_name.lower()
         
-        if tokenizer.chat_template is not None:
+        if hasattr(tokenizer, 'chat_template') and tokenizer.chat_template is not None:
             pass
         elif "llama" in model_name_lower:
-            return config.load_llama_config()
+            config = config.load_llama_config()
         elif "phi" in model_name_lower:
-            return config.load_phi_config()
+            config = config.load_phi_config()
         elif "qwen" in model_name_lower:
-            return config.load_qwen_config()
+            config = config.load_qwen_config()
         elif "smollm" in model_name_lower:
-            return config.load_smol_config()
+            config = config.load_smol_config()
         
-        if tokenizer.chat_template is None:
+        if not hasattr(tokenizer, 'chat_template') or tokenizer.chat_template is None:
             config.chat_template = """{{%- if messages[0]['role'] == 'system' %}}
     {{%- set system_message = messages[0]['content'] %}}
     {{%- set loop_messages = messages[1:] %}}
@@ -109,5 +109,4 @@ class TokenizerConfig:
             config.begin_text_token = tokenizer.bos_token
             config.end_text_token = tokenizer.eos_token
 
-        # Default to LLaMA format if no match
         return config, config.chat_template
