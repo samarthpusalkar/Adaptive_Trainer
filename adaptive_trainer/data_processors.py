@@ -107,6 +107,9 @@ class DataProcessor:
             system_prompt = system_prompts.get(learning_style, '') + dataset_specific_prompt
 
         context_mode = dataset_kwargs.pop("context_mode", False) if dataset_kwargs is not None else False
+        train_split = dataset_kwargs.pop("train_split", "train")    if dataset_kwargs is not None else "train"
+        val_split   = dataset_kwargs.pop("val_split", "validation") if dataset_kwargs is not None else "validation"
+        train_split 
         if context_mode in ["attention", "ideas"]:
             context_mode = (learning_style == context_mode)
         logger.info(f"Loading dataset: {dataset_name}")
@@ -120,8 +123,8 @@ class DataProcessor:
         logger.info(f"Available splits in the dataset: {available_splits}")
         
         # Choose appropriate splits
-        train_split = "train" if "train" in available_splits else available_splits[0]
-        val_split = "validation" if "validation" in available_splits else (
+        train_split = train_split if train_split in available_splits else available_splits[0]
+        val_split = val_split if val_split in available_splits else (
             "test" if "test" in available_splits else train_split
         )
 
@@ -129,12 +132,11 @@ class DataProcessor:
         if val_split == train_split:
             split_dataset = dataset[train_split].train_test_split(test_size=0.05, seed=42)
             train_dataset = split_dataset["train"].shuffle(seed=42).select(range(min(N, len(split_dataset["train"]))))
-            val_dataset = split_dataset["test"].shuffle(seed=42).select(range(min(round(N*2/3), len(split_dataset["test"]))))
+            val_dataset = split_dataset["test"].shuffle(seed=42).select(   range(min(N, len(split_dataset["test"]))))
         else:
             train_dataset = dataset[train_split].shuffle(seed=42).select(range(min(N, len(dataset[train_split])))) 
-            val_dataset = dataset[val_split].shuffle(seed=42).select(range(min(round(N*2/3), len(dataset[val_split]))))
-            
-        
+            val_dataset   = dataset[val_split].shuffle(seed=42).select(  range(min(N, len(dataset[val_split]))))
+
         # Format the prompts
         train_dataset = train_dataset.map(
             lambda sample: {"formatted_text": self.prepare_text_for_training(sample, system_prompt, context_mode, dataset_preprocessing_function)},
@@ -178,8 +180,9 @@ class DataProcessor:
             example["learning_style"] = learning_style
             return example
 
-        tokenized_train = tokenized_train.map(learning_style_column)
-        tokenized_val = tokenized_val.map(learning_style_column)
+        len_val_set = max(round((len(tokenized_val)/len(tokenized_train))*N), 10) if len(tokenized_val)>10 else len(tokenized_val)
+        tokenized_train = tokenized_train.map(learning_style_column)[:N]
+        tokenized_val = tokenized_val.map(learning_style_column)[:len_val_set]
 
         # Set format for PyTorch
         tokenized_train.set_format("torch", columns=["input_ids", "attention_mask", "learning_style"])

@@ -58,19 +58,21 @@ datasets_config = {
     # 'data_processing_function_ideas':None
     # 'data_processing_function_dataset_name':None
 }
-# The above will trim the `user/my-ideas-dataset` till top K values and similar thing can be done for attention datasets too just add :|:K at the end of dataset name and it will only use top K rows of the dataset..
+# The above will trim the `user/my-ideas-dataset` till top K values (after filtering by max_token_length) and similar thing can be done for attention datasets too just add :|:K at the end of dataset name and it will only use top K rows of the dataset..
+# The validation set will be proportionately be scaled down = max(K*len(val)/len(train), 10) if len(val)>10 not scaled otherwise
 # Dataset preprocessing function which is expected to convert dataset sample row to user and assistant response strings.. is taken in the following fallback order:
 # data_processing_function_dataset_name -> data_processing_function_{ideas/attention} -> data_processing_function
 # **IMPORTANT** : passing data_processing_function_dataset_name with value None will not use fallback functions but rather used internal hard coded preprocessing function for different dataset patterns case to case.
 # The hardcoded preprocessing might fail and raise error, therefore please pass the appropriate data_processing_function
 
 dataset_kwargs = {
-    'user/my-ideas-dataset:|:K': {'data_dir'=None, 'context_mode':'<parameter_value_for_dataset_preprocessing_function>'},
+    'user/my-ideas-dataset:|:K': {'data_dir'=None, 'context_mode':'<parameter_value_for_dataset_preprocessing_function>', 'train_split':'<train_split_name>', 'val_split':'<val_split_name>'},
     'user/my-ideas-dataset': {}, # Both keys are valid and should work
     'user/my-attention-dataset': {}
 }
 # If you want to added custom arguments to `load_dataset` function from `datasets` library
 # optional can be `None`
+# train_split, val_split -> if the dataset has splits available they can be passed here, dataset is expected to have at least one split at high level when loaded
 
 dataset_specific_system_prompts = {
     'user/my-ideas-dataset:|:K': 'Dataset_specific_prompt',
