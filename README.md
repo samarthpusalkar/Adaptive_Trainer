@@ -28,7 +28,8 @@ pip install .
 ```
 *Or, if you want to install with optional dependencies like flash-attention:*
 ```bash
-pip install .[flash_attn]
+pip install flash-attn --no-build-isolation
+pip install bitsandbytes
 ```
 
 ## Quick Start
