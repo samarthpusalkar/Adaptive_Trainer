@@ -46,5 +46,3 @@ Issues = "https://github.com/samarthpusalkar/Adaptive_Trainer/issues"
 
 [tool.setuptools.packages.find]
 exclude = ["tests*", "examples*"]
-
-[tool.hatch]
