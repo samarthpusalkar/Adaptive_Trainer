@@ -220,13 +220,7 @@ class DataProcessor:
 
         # Process each dataset category
         for style, datasets in dataset_dict.items():
-            if style == 'system_prompts':
-                continue
-            if style == 'dataset_branchs':
-                continue
-            if style == 'dataset_specific_system_prompts':
-                continue
-            if style.startswith('data_processing_function'):
+            if style not in ['ideas', 'attention', 'both', 'misc']:
                 continue
 
             for dataset_name in datasets:
