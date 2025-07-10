@@ -95,7 +95,7 @@ training_config = {
     'learning_rate': 2e-5,
     'gradient_accumulation_steps': 16,
     'num_epochs': 3,
-    'attn_impl': 'flash_attention_2',
+    'attn_impl': None, # will use default implementation `sdpa` if available or `eager` otherwise
     'save_total_limit': 5,
     'fp16': True,
     'gradient_checkpointing': True,
