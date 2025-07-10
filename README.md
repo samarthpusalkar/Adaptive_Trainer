@@ -100,6 +100,7 @@ training_config = {
     'fp16': True,
     'gradient_checkpointing': True,
     'eval_strategy': 'steps',
+    'save_strategy': 'steps',
     'local_rank': -1,
     'logging_steps':10,
     'weight_decay': 0.01,
