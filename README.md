@@ -115,6 +115,7 @@ training_config = {
 # Configure adaptive loss parameters
 adaptive_loss_config = {
     'top_k': 8 # Currently only top_k parameter is allowed for user_control in training
+    'adaptive_log_steps': 100 # after every these many training steps some adaptive training metrics will be logged
 }
 # It is expected that a lower value of top_k will lead to stricter learning possibly leading previous learned behaviour
 # being forgotten and a higher value of top_k will allow more lienient learning

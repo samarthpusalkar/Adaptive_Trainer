@@ -28,6 +28,7 @@ class AdaptiveTrainer(Trainer):
         stats_save_path="./selective_loss_stats.json",
         skip_init_tokens=0,
         output_demarkation_token_ids=None,
+        log_metric_steps=100,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
@@ -39,7 +40,7 @@ class AdaptiveTrainer(Trainer):
         self.stats_save_path = stats_save_path
         self.skip_init_tokens = skip_init_tokens
         self.OUTPUT_DEMARKATION_TOKEN_IDs = torch.tensor(output_demarkation_token_ids) if (output_demarkation_token_ids is not None) and (len(output_demarkation_token_ids) > 0) else None
-        
+        self.log_metric_steps = log_metric_steps
         # Statistics tracking
         self.stats = {
             "total_tokens": 0,
@@ -177,7 +178,7 @@ class AdaptiveTrainer(Trainer):
         
         # Save statistics periodically
         self.stats["step_count"] += 1
-        if self.stats["step_count"] % 100 == 0:
+        if self.stats["step_count"] % self.log_metric_steps == 0:
             self._save_stats()
         
         return (loss, outputs) if return_outputs else loss
@@ -355,10 +356,10 @@ class AdaptiveTrainer(Trainer):
         total = self.stats["total_tokens"]
         if total > 0:
             logger.info(f"Adaptive Loss Statistics (after {self.stats['step_count']} steps):")
-            logger.info(f"  Already correct: {self.stats['already_correct'] / total:.2%}")
-            logger.info(f"  From top-k: {self.stats['in_top_k'] / total:.2%}")
-            logger.info(f"  Outside top-k: {self.stats['outside_top_k'] / total:.2%}")
-            logger.info(f"  Trained in loop: {self.stats['training_mask'] / total:.2%}")
+            logger.info(f"  Already correct:       \t{self.stats['already_correct'] / total:.2%}")
+            logger.info(f"  From top-k:            \t{self.stats['in_top_k'] / total:.2%}")
+            logger.info(f"  Outside top-k:         \t{self.stats['outside_top_k'] / total:.2%}")
+            logger.info(f"  Total Trained in loop: \t{self.stats['training_mask'] / total:.2%}")
             for key in ['total_tokens', 'already_correct', 'in_top_k', 
                 'outside_top_k', 'training_mask']:
                 self.stats[key] = 0
@@ -371,5 +372,5 @@ class AdaptiveTrainer(Trainer):
                 "outside_top_k": 0,
                 "training_mask": 0,
                 "tokens_by_position": defaultdict(lambda: defaultdict(int)),
-                "step_count": 0
+                "step_count": self.stats['step_count']
             }
