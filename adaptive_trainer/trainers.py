@@ -295,7 +295,7 @@ class AdaptiveTrainer(Trainer):
 
         self_confidence_loss = loss_fct(flat_logits, flat_pred_tokens_correct_prediction)
 
-        common_language_continuation_loss = loss_fct(flat_logits, flat_pred_tokens) # this loss (`should`) handle deviation from language continuation and prompted task
+        common_language_continuation_loss = loss_fct(flat_logits, flat_labels) # this loss (`should`) handle deviation from language continuation and prompted task
 
         if valid_loss_mask_ideas.sum().item() == 0:
             flat_pred_tokens_temp = flat_pred_tokens.clone()
