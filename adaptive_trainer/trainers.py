@@ -295,6 +295,8 @@ class AdaptiveTrainer(Trainer):
 
         self_confidence_loss = loss_fct(flat_logits, flat_pred_tokens_correct_prediction)
 
+        common_language_continuation_loss = loss_fct(flat_logits, flat_pred_tokens) # this loss (`should`) handle deviation from language continuation and prompted task
+
         if valid_loss_mask_ideas.sum().item() == 0:
             flat_pred_tokens_temp = flat_pred_tokens.clone()
             flat_pred_tokens_temp[~(flat_learn_style_mask_ideas)] = -100
@@ -310,7 +312,7 @@ class AdaptiveTrainer(Trainer):
         if valid_loss_mask_coherence.sum().item() == 0:
             flat_pred_tokens_temp = flat_pred_tokens.clone()
             flat_pred_tokens_temp[~(flat_learn_style_mask_attention)] = -100
-            attention_learning_loss = loss_fct(flat_logits, flat_pred_tokens) + self_confidence_loss/4
+            attention_learning_loss = loss_fct(flat_logits, flat_pred_tokens_temp) + self_confidence_loss/4
         else:
             flat_labels_coherence_temp = flat_labels_coherence.clone()
             if (~(flat_learn_style_mask_attention)).all():
@@ -322,7 +324,7 @@ class AdaptiveTrainer(Trainer):
         # Recalculating proper training tokens
         stats['training_mask'] = (flat_learn_style_mask_attention & flat_valid_mask).sum().item() + (flat_learn_style_mask_ideas & flat_valid_mask).sum().item() - (flat_learn_style_mask_both  & flat_valid_mask).sum().item()
         alpha_attention_bias = torch.tensor(1.0, requires_grad=True)
-        loss = (attention_learning_loss*alpha_attention_bias + ideas_learning_loss*(2-alpha_attention_bias))**2
+        loss = (attention_learning_loss*alpha_attention_bias + ideas_learning_loss*(2-alpha_attention_bias) + common_language_continuation_loss*(alpha_attention_bias+0.5)/2)**2
 
         return loss, stats
 
