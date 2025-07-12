@@ -6,8 +6,6 @@ on:
       - main
     tags:
       - 'v*'
-    tags-ignore:
-      - v0.1.*
 
 jobs:
   build-n-publish:
