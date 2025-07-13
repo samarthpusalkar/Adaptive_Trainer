@@ -224,14 +224,15 @@ class DataProcessor:
                 continue
 
             for dataset_name in datasets:
-                dataset_preprocessing_function = dataset_dict.get(f'data_processing_function_{dataset_name}',dataset_dict.get(f'data_processing_function_{style}', dataset_dict.get('data_processing_function', None)))
+                dataset_preprocessing_function = dataset_dict.get(f'data_processing_function_{dataset_name}', None)
                 dataset_kwargs = datasets_kwargs.get(dataset_name, None)
-                dataset_specific_prompt = dataset_specific_system_prompts.get(dataset_name, '')
+                dataset_specific_prompt = dataset_specific_system_prompts.get(dataset_name, None)
                 if (dataset_kwargs is None) and (":|:" in dataset_name):
                     dataset_kwargs = datasets_kwargs.get(":|:".join(dataset_name.split(":|:")[:-1]), None)
-                if (dataset_specific_prompt=='') and (":|:" in dataset_name):
+                if (dataset_specific_prompt is None) and (":|:" in dataset_name):
                     dataset_specific_prompt = dataset_specific_system_prompts.get(":|:".join(dataset_name.split(":|:")[:-1]), '')
-                    dataset_preprocessing_function = dataset_dict.get(f'data_processing_function_{dataset_name}',dataset_dict.get(f'data_processing_function_{style}', dataset_dict.get('data_processing_function', None))) 
+                if dataset_preprocessing_function is None:
+                    dataset_preprocessing_function = dataset_dict.get(f'data_processing_function_{":|:".join(dataset_name.split(":|:")[:-1])}', dataset_dict.get(f'data_processing_function_{style}', dataset_dict.get('data_processing_function', None)))
                 train_dataset, eval_dataset = self.prepare_dataset(
                     dataset_name,
                     dataset_kwargs.copy() if dataset_kwargs is not None else None,
