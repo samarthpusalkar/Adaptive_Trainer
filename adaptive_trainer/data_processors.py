@@ -180,8 +180,8 @@ class DataProcessor:
             example["learning_style"] = learning_style
             return example
 
-        len_val_set = max(round((len(tokenized_val)/len(tokenized_train))*N), 10) if len(tokenized_val)>10 else len(tokenized_val)
-        tokenized_train = tokenized_train.map(learning_style_column).select(range(N))
+        len_val_set = max(round((len(tokenized_val)/len(tokenized_train))*(N-1)), 10) if len(tokenized_val)>10 else len(tokenized_val)
+        tokenized_train = tokenized_train.map(learning_style_column).select(range(N-1))
         tokenized_val = tokenized_val.map(learning_style_column).select(range(len_val_set))
 
         # Set format for PyTorch
@@ -224,14 +224,15 @@ class DataProcessor:
                 continue
 
             for dataset_name in datasets:
-                dataset_preprocessing_function = dataset_dict.get(f'data_processing_function_{dataset_name}',dataset_dict.get(f'data_processing_function_{style}', dataset_dict.get('data_processing_function', None)))
+                dataset_preprocessing_function = dataset_dict.get(f'data_processing_function_{dataset_name}', None)
                 dataset_kwargs = datasets_kwargs.get(dataset_name, None)
-                dataset_specific_prompt = dataset_specific_system_prompts.get(dataset_name, '')
+                dataset_specific_prompt = dataset_specific_system_prompts.get(dataset_name, None)
                 if (dataset_kwargs is None) and (":|:" in dataset_name):
                     dataset_kwargs = datasets_kwargs.get(":|:".join(dataset_name.split(":|:")[:-1]), None)
-                if (dataset_specific_prompt=='') and (":|:" in dataset_name):
+                if (dataset_specific_prompt is None) and (":|:" in dataset_name):
                     dataset_specific_prompt = dataset_specific_system_prompts.get(":|:".join(dataset_name.split(":|:")[:-1]), '')
-                    dataset_preprocessing_function = dataset_dict.get(f'data_processing_function_{dataset_name}',dataset_dict.get(f'data_processing_function_{style}', dataset_dict.get('data_processing_function', None))) 
+                if dataset_preprocessing_function is None:
+                    dataset_preprocessing_function = dataset_dict.get(f'data_processing_function_{":|:".join(dataset_name.split(":|:")[:-1])}', dataset_dict.get(f'data_processing_function_{style}', dataset_dict.get('data_processing_function', None)))
                 train_dataset, eval_dataset = self.prepare_dataset(
                     dataset_name,
                     dataset_kwargs.copy() if dataset_kwargs is not None else None,
