@@ -11,9 +11,6 @@ A Hugging Face `Trainer` extension designed for more efficient and effective fin
 *   **More Features** like parameter control and hyperparameter optimisation of loss for user comming soon
 
 
-## Not Implemented yet:
-Custom dataset processing as user_input..
-
 ## Installation
 
 You can install `adaptive-trainer` using pip:
@@ -21,12 +18,12 @@ You can install `adaptive-trainer` using pip:
 ```bash
 pip install adaptive-trainer
 ```
-*(Once you upload it to PyPI. For local development:)*
 
+*For local directly from repo, clone and checkout to the required branch and run:
 ```bash
 pip install .
 ```
-*Or, if you want to install with optional dependencies like flash-attention:*
+*if you want to install with optional dependencies like flash-attention:*
 ```bash
 pip install flash-attn --no-build-isolation
 pip install bitsandbytes
