@@ -41,6 +41,8 @@ class AdaptiveTrainer(Trainer):
         self.skip_init_tokens = skip_init_tokens
         self.OUTPUT_DEMARKATION_TOKEN_IDs = torch.tensor(output_demarkation_token_ids) if (output_demarkation_token_ids is not None) and (len(output_demarkation_token_ids) > 0) else None
         self.log_metric_steps = log_metric_steps
+        self.alpha_attention_bias = torch.tensor(1.0, requires_grad=True)
+        self.beta_language_bias = torch.tensor(1.0, requires_grad=True)
         # Statistics tracking
         self.stats = {
             "total_tokens": 0,
@@ -49,7 +51,9 @@ class AdaptiveTrainer(Trainer):
             "outside_top_k": 0,
             "training_mask": 0,
             "tokens_by_position": defaultdict(lambda: defaultdict(int)),
-            "step_count": 0
+            "step_count": 0,
+            "attention_bias_alpha": 0,
+            "coherence_bias_beta": 0
         }
 
     def find_sequence_vectorized_2d(self, main_tensor: torch.Tensor, sequence: torch.Tensor) -> torch.Tensor:
@@ -242,7 +246,9 @@ class AdaptiveTrainer(Trainer):
             "in_top_k": (expected_in_top_k & valid_mask).sum().item(),
             "outside_top_k": ((~expected_in_top_k) & valid_mask).sum().item(),
             "training_mask": training_mask.sum().item(),
-            "tokens_by_position": defaultdict(lambda: defaultdict(int))
+            "tokens_by_position": defaultdict(lambda: defaultdict(int)),
+            "attention_bias_alpha": self.alpha_attention_bias.item(),
+            "coherence_bias_beta": self.beta_language_bias.item()
         }
 
         # Compute cross-entropy loss only for tokens selected by loss_mask
@@ -295,7 +301,10 @@ class AdaptiveTrainer(Trainer):
 
         self_confidence_loss = loss_fct(flat_logits, flat_pred_tokens_correct_prediction)
 
-        common_language_continuation_loss = loss_fct(flat_logits, flat_labels) # this loss (`should`) handle deviation from language continuation and prompted task
+        if (flat_labels==-100).all():
+            common_language_continuation_loss = self_confidence_loss/4
+        else:
+            common_language_continuation_loss = loss_fct(flat_logits, flat_labels) # this loss (`should`) handle deviation from language continuation and prompted task
 
         if valid_loss_mask_ideas.sum().item() == 0:
             flat_pred_tokens_temp = flat_pred_tokens.clone()
@@ -323,8 +332,17 @@ class AdaptiveTrainer(Trainer):
 
         # Recalculating proper training tokens
         stats['training_mask'] = ((flat_learn_style_mask_attention & valid_loss_mask_coherence) & flat_valid_mask).sum().item() + ((flat_learn_style_mask_ideas & valid_loss_mask_ideas) & flat_valid_mask).sum().item() - (((flat_learn_style_mask_both & valid_loss_mask_coherence) & valid_loss_mask_ideas) & flat_valid_mask).sum().item()
-        alpha_attention_bias = torch.tensor(1.0, requires_grad=True)
-        loss = (attention_learning_loss*alpha_attention_bias + ideas_learning_loss*(2-alpha_attention_bias) + common_language_continuation_loss*(alpha_attention_bias+0.5)/2)**2
+        loss = ((attention_learning_loss*self.alpha_attention_bias + ideas_learning_loss*(2-self.alpha_attention_bias))*(2-self.beta_language_bias) + common_language_continuation_loss*(self.beta_language_bias)/2)
+
+        bias_loss = ((attention_learning_loss.item()*(2-self.alpha_attention_bias) + ideas_learning_loss.item()*(self.alpha_attention_bias))*(self.beta_language_bias) + common_language_continuation_loss.item()*(2-self.beta_language_bias)/2) + (2 - self.beta_language_bias) + (self.beta_language_bias)**2 + (2 - self.alpha_attention_bias) + (self.alpha_attention_bias)**2
+        bias_loss.backward()
+        with torch.no_grad():
+            if self.alpha_attention_bias.grad is not None:
+                self.alpha_attention_bias.data -= 0.00005 * self.alpha_attention_bias.grad
+                self.alpha_attention_bias.grad.zero_()
+            if self.beta_language_bias.grad is not None:
+                self.beta_language_bias.data -= 0.00005 * self.beta_language_bias.grad
+                self.beta_language_bias.grad.zero_()
 
         return loss, stats
 
@@ -333,7 +351,9 @@ class AdaptiveTrainer(Trainer):
         for key in ['total_tokens', 'already_correct', 'in_top_k', 
                 'outside_top_k', 'training_mask']:
             self.stats[key] += batch_stats[key]
-        
+        for key in ['attention_bias_alpha',  'coherence_bias_beta']:
+            self.stats[key] = batch_stats[key]
+
         # Update position-specific stats
         for pos, pos_stats in batch_stats["tokens_by_position"].items():
             for stat_name, count in pos_stats.items():
@@ -362,6 +382,8 @@ class AdaptiveTrainer(Trainer):
             logger.info(f"  From top-k:            \t{self.stats['in_top_k'] / total:.2%}")
             logger.info(f"  Outside top-k:         \t{self.stats['outside_top_k'] / total:.2%}")
             logger.info(f"  Total Trained in loop: \t{self.stats['training_mask'] / total:.2%}")
+            logger.info(f"  Attention Bias:        \t{self.stats['attention_bias_alpha']}")
+            logger.info(f"  Language Coherence Bias:\t{self.stats['coherence_bias_beta']}")
             for key in ['total_tokens', 'already_correct', 'in_top_k', 
                 'outside_top_k', 'training_mask']:
                 self.stats[key] = 0
@@ -374,5 +396,7 @@ class AdaptiveTrainer(Trainer):
                 "outside_top_k": 0,
                 "training_mask": 0,
                 "tokens_by_position": defaultdict(lambda: defaultdict(int)),
-                "step_count": self.stats['step_count']
+                "step_count": self.stats['step_count'],
+                "attention_bias_alpha": self.stats['attention_bias_alpha'],
+                "coherence_bias_beta": self.stats['coherence_bias_beta']
             }
