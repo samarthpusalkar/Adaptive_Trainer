@@ -180,9 +180,11 @@ class DataProcessor:
             example["learning_style"] = learning_style
             return example
 
-        len_val_set = max(round((len(tokenized_val)/len(tokenized_train))*(N-1)), 10) if len(tokenized_val)>10 else len(tokenized_val)
-        tokenized_train = tokenized_train.map(learning_style_column).select(range(N-1))
-        tokenized_val = tokenized_val.map(learning_style_column).select(range(len_val_set))
+        len_train_set = len(tokenized_train)
+        len_val_set = max(round((len(tokenized_val)/len_train_set)*N), 10) if len(tokenized_val)>10 else len(tokenized_val)
+        tokenized_train = tokenized_train.map(learning_style_column).select(range(min(N, len_train_set)))
+        len_val_set2 = len(tokenized_val)
+        tokenized_val = tokenized_val.map(learning_style_column).select(range(min(len_val_set2, len_val_set)))
 
         # Set format for PyTorch
         tokenized_train.set_format("torch", columns=["input_ids", "attention_mask", "learning_style"])
