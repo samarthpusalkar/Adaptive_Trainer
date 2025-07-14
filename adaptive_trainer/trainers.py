@@ -334,14 +334,18 @@ class AdaptiveTrainer(Trainer):
         stats['training_mask'] = ((flat_learn_style_mask_attention & valid_loss_mask_coherence) & flat_valid_mask).sum().item() + ((flat_learn_style_mask_ideas & valid_loss_mask_ideas) & flat_valid_mask).sum().item() - (((flat_learn_style_mask_both & valid_loss_mask_coherence) & valid_loss_mask_ideas) & flat_valid_mask).sum().item()
         loss = ((attention_learning_loss*self.alpha_attention_bias + ideas_learning_loss*(2-self.alpha_attention_bias))*(2-self.beta_language_bias) + common_language_continuation_loss*(self.beta_language_bias)/2)
 
-        bias_loss = ((attention_learning_loss.item()*(2-self.alpha_attention_bias) + ideas_learning_loss.item()*(self.alpha_attention_bias))*(self.beta_language_bias) + common_language_continuation_loss.item()*(2-self.beta_language_bias)/2) + (2 - self.beta_language_bias) + (self.beta_language_bias)**2 + (2 - self.alpha_attention_bias) + (self.alpha_attention_bias)**2
-        bias_loss.backward()
-        with torch.no_grad():
+        if torch.is_grad_enabled():
+            bias_loss = ((attention_learning_loss.item()*(2-self.alpha_attention_bias) + ideas_learning_loss.item()*(self.alpha_attention_bias))*(self.beta_language_bias) + common_language_continuation_loss.item()*(2-self.beta_language_bias)/2) + (2 - self.beta_language_bias) + (self.beta_language_bias)**2 + (2 - self.alpha_attention_bias) + (self.alpha_attention_bias)**2
+            bias_loss.backward()
             if self.alpha_attention_bias.grad is not None:
                 self.alpha_attention_bias.data -= 0.00005 * self.alpha_attention_bias.grad
+                self.alpha_attention_bias.data = min(self.alpha_attention_bias.data, torch.tensor(0.4))
+                self.alpha_attention_bias.data = max(self.alpha_attention_bias.data, torch.tensor(1.7))
                 self.alpha_attention_bias.grad.zero_()
             if self.beta_language_bias.grad is not None:
                 self.beta_language_bias.data -= 0.00005 * self.beta_language_bias.grad
+                self.beta_language_bias.data = min(self.beta_language_bias.data, torch.tensor(0.4))
+                self.beta_language_bias.data = max(self.beta_language_bias.data, torch.tensor(1.7))
                 self.beta_language_bias.grad.zero_()
 
         return loss, stats
