@@ -231,7 +231,7 @@ class DataProcessor:
                 dataset_specific_prompt = dataset_specific_system_prompts.get(dataset_name, None)
                 if (dataset_kwargs is None) and (":|:" in dataset_name):
                     dataset_kwargs = datasets_kwargs.get(":|:".join(dataset_name.split(":|:")[:-1]), None)
-                if (dataset_specific_prompt is None) and (":|:" in dataset_name):
+                if (dataset_specific_prompt is None):
                     dataset_specific_prompt = dataset_specific_system_prompts.get(":|:".join(dataset_name.split(":|:")[:-1]), '')
                 if dataset_preprocessing_function is None:
                     dataset_preprocessing_function = dataset_dict.get(f'data_processing_function_{":|:".join(dataset_name.split(":|:")[:-1])}', dataset_dict.get(f'data_processing_function_{style}', dataset_dict.get('data_processing_function', None)))

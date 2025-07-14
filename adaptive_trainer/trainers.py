@@ -339,9 +339,13 @@ class AdaptiveTrainer(Trainer):
         with torch.no_grad():
             if self.alpha_attention_bias.grad is not None:
                 self.alpha_attention_bias.data -= 0.00005 * self.alpha_attention_bias.grad
+                self.alpha_attention_bias.data = min(self.alpha_attention_bias.data, torch.tensor(0.4))
+                self.alpha_attention_bias.data = max(self.alpha_attention_bias.data, torch.tensor(1.7))
                 self.alpha_attention_bias.grad.zero_()
             if self.beta_language_bias.grad is not None:
                 self.beta_language_bias.data -= 0.00005 * self.beta_language_bias.grad
+                self.beta_language_bias.data = min(self.beta_language_bias.data, torch.tensor(0.4))
+                self.beta_language_bias.data = max(self.beta_language_bias.data, torch.tensor(1.7))
                 self.beta_language_bias.grad.zero_()
 
         return loss, stats
