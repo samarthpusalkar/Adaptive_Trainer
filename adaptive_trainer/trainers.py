@@ -43,6 +43,7 @@ class AdaptiveTrainer(Trainer):
         self.log_metric_steps = log_metric_steps
         self.alpha_attention_bias = torch.tensor(1.0, requires_grad=True)
         self.beta_language_bias = torch.tensor(1.0, requires_grad=True)
+        self.bias_optimizer = torch.optim.Adam([self.alpha_attention_bias, self.beta_language_bias], lr=0.001)
         # Statistics tracking
         self.stats = {
             "total_tokens": 0,
@@ -301,6 +302,9 @@ class AdaptiveTrainer(Trainer):
 
         self_confidence_loss = loss_fct(flat_logits, flat_pred_tokens_correct_prediction)
 
+        if self_confidence_loss.isnan():
+            self_confidence_loss = loss_fct(flat_logits, flat_pred_tokens)
+
         if (flat_labels==-100).all():
             common_language_continuation_loss = self_confidence_loss/4
         else:
@@ -309,44 +313,58 @@ class AdaptiveTrainer(Trainer):
         if valid_loss_mask_ideas.sum().item() == 0:
             flat_pred_tokens_temp = flat_pred_tokens.clone()
             flat_pred_tokens_temp[~(flat_learn_style_mask_ideas)] = -100
-            ideas_learning_loss = loss_fct(flat_logits, flat_pred_tokens_temp) + self_confidence_loss/4
+            l1_temp = loss_fct(flat_logits, flat_pred_tokens_temp)
+            if l1_temp.isnan():
+                ideas_learning_loss = self_confidence_loss/4
+            else:
+                ideas_learning_loss = l1_temp + self_confidence_loss/4
         else:
             flat_labels_ideas_temp = flat_labels_ideas.clone()
             if (~(flat_learn_style_mask_ideas)).all():
                 ideas_learning_loss = self_confidence_loss/4
             else:
                 flat_labels_ideas_temp[~(flat_learn_style_mask_ideas)] = -100
-                ideas_learning_loss = loss_fct(flat_logits, flat_labels_ideas_temp) + self_confidence_loss/4
+                l1_temp = loss_fct(flat_logits, flat_labels_ideas_temp)
+                if l1_temp.isnan():
+                    ideas_learning_loss = self_confidence_loss/4
+                else:  
+                    ideas_learning_loss = l1_temp + self_confidence_loss/4
 
         if valid_loss_mask_coherence.sum().item() == 0:
             flat_pred_tokens_temp = flat_pred_tokens.clone()
             flat_pred_tokens_temp[~(flat_learn_style_mask_attention)] = -100
-            attention_learning_loss = loss_fct(flat_logits, flat_pred_tokens_temp) + self_confidence_loss/4
+            l2_temp = loss_fct(flat_logits, flat_pred_tokens_temp)
+            if l2_temp.isnan():
+                attention_learning_loss = self_confidence_loss/4
+            else:
+                attention_learning_loss = l2_temp + self_confidence_loss/4
         else:
             flat_labels_coherence_temp = flat_labels_coherence.clone()
             if (~(flat_learn_style_mask_attention)).all():
                 attention_learning_loss = self_confidence_loss/4
             else:
                 flat_labels_coherence_temp[~(flat_learn_style_mask_attention)] = -100
-                attention_learning_loss = loss_fct(flat_logits, flat_labels_coherence_temp) + self_confidence_loss/4
+                l2_temp = loss_fct(flat_logits, flat_labels_coherence_temp)
+                if l2_temp.isnan():
+                    attention_learning_loss = self_confidence_loss/4
+                else:
+                    attention_learning_loss = l2_temp + self_confidence_loss/4
 
         # Recalculating proper training tokens
         stats['training_mask'] = ((flat_learn_style_mask_attention & valid_loss_mask_coherence) & flat_valid_mask).sum().item() + ((flat_learn_style_mask_ideas & valid_loss_mask_ideas) & flat_valid_mask).sum().item() - (((flat_learn_style_mask_both & valid_loss_mask_coherence) & valid_loss_mask_ideas) & flat_valid_mask).sum().item()
-        loss = ((attention_learning_loss*self.alpha_attention_bias + ideas_learning_loss*(2-self.alpha_attention_bias))*(2-self.beta_language_bias) + common_language_continuation_loss*(self.beta_language_bias)/2)
-
+        loss = ((attention_learning_loss*self.alpha_attention_bias.item() + ideas_learning_loss*(2-self.alpha_attention_bias.item()))*(2-self.beta_language_bias.item()) + common_language_continuation_loss*(self.beta_language_bias.item())/2)
         if torch.is_grad_enabled():
-            bias_loss = ((attention_learning_loss.item()*(2-self.alpha_attention_bias) + ideas_learning_loss.item()*(self.alpha_attention_bias))*(self.beta_language_bias) + common_language_continuation_loss.item()*(2-self.beta_language_bias)/2) + (2 - self.beta_language_bias) + (self.beta_language_bias)**2 + (2 - self.alpha_attention_bias) + (self.alpha_attention_bias)**2
-            bias_loss.backward()
-            if self.alpha_attention_bias.grad is not None:
-                self.alpha_attention_bias.data -= 0.00005 * self.alpha_attention_bias.grad
-                self.alpha_attention_bias.data = min(self.alpha_attention_bias.data, torch.tensor(0.4))
-                self.alpha_attention_bias.data = max(self.alpha_attention_bias.data, torch.tensor(1.7))
-                self.alpha_attention_bias.grad.zero_()
-            if self.beta_language_bias.grad is not None:
-                self.beta_language_bias.data -= 0.00005 * self.beta_language_bias.grad
-                self.beta_language_bias.data = min(self.beta_language_bias.data, torch.tensor(0.4))
-                self.beta_language_bias.data = max(self.beta_language_bias.data, torch.tensor(1.7))
-                self.beta_language_bias.grad.zero_()
+            bias_loss = (((attention_learning_loss.item()*(2-self.alpha_attention_bias) + ideas_learning_loss.item()*(self.alpha_attention_bias))*(self.beta_language_bias) + common_language_continuation_loss.item()*(2-self.beta_language_bias)/2))
+            if not bias_loss.isnan():
+                self.bias_optimizer.zero_grad()
+                bias_loss.backward()
+                self.bias_optimizer.step()
+                self.alpha_attention_bias.data = torch.max(torch.min(self.alpha_attention_bias.data, torch.tensor(1.7)), torch.tensor(0.4))
+                self.beta_language_bias.data   = torch.max(torch.min(self.beta_language_bias.data,   torch.tensor(1.7)), torch.tensor(0.4))
+                if self.alpha_attention_bias.isnan():
+                    self.alpha_attention_bias.data = torch.tensor(1.0)
+                if self.beta_language_bias.isnan():
+                    self.beta_language_bias.data   = torch.tensor(1.0)
 
         return loss, stats
 
