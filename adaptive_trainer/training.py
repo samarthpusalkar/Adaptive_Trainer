@@ -98,7 +98,7 @@ def train_adaptively(
     
     # Get output demarkation tokens for identifying model response sections
     output_demarker = tokenizer_config.assistant_header.strip()
-    empty_token_length_for_tokenizer = len(tokenizer(''))
+    empty_token_length_for_tokenizer = len(tokenizer('').get('input_ids', []))
     output_demarkation_ids = tokenizer(output_demarker)['input_ids'][empty_token_length_for_tokenizer:]
 
     # Setup data processor

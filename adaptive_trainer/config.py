@@ -99,6 +99,8 @@ class TokenizerConfig:
             end_turn_token=config.end_turn_token
         )
         else:
+            tokenizer.bos_token = tokenizer.bos_token if tokenizer.bos_token is not None else ''
+            tokenizer.eos_token = tokenizer.eos_token if tokenizer.eos_token is not None else ''
             config.chat_template = tokenizer.chat_template
             config.system_header = tokenizer.apply_chat_template([{'role':'system', 'content':'|SEP|'}], tokenize=False).split('|SEP|')[0].replace(tokenizer.bos_token, '').replace(tokenizer.eos_token, '')
             config.user_header = tokenizer.apply_chat_template([{'role':'user', 'content':'|SEP|'}], tokenize=False).split('|SEP|')[0].replace(tokenizer.bos_token, '').replace(tokenizer.eos_token, '')
