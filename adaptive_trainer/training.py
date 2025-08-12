@@ -194,7 +194,8 @@ def train_adaptively(
         max_kl_divergence=adaptive_loss_config.get("max_kl_divergence", 0.2),
         curriculum_epochs=adaptive_loss_config.get("curriculum_epochs", 1.0),
         stats_save_path=f"{output_dir}/selective_loss_stats.json",
-        log_metric_steps=adaptive_loss_config.get("adaptive_log_steps", 100)
+        log_metric_steps=adaptive_loss_config.get("adaptive_log_steps", 100),
+        tokenizer=tokenizer
     )
     
     # Start training
